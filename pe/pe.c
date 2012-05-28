@@ -129,8 +129,8 @@ void slurp_pe_header(pe_header *header, FILE *fh, int *bytes_read) {
 		header->DataDirectories = (pe_data_directory *)
 			malloc(sizeof(pe_data_directory) * header->NumberOfRvaAndSizes);
 		for (j = 0; j < header->NumberOfRvaAndSizes; ++j) {
-			header->DataDirectories[j]->VirtualAddress = read_dword(fh); btotal += 4;
-			header->DataDirectories[j]->Size           = read_dword(fh); btotal += 4;
+			header->DataDirectories[j].VirtualAddress = read_dword(fh); btotal += 4;
+			header->DataDirectories[j].Size           = read_dword(fh); btotal += 4;
 		}
 	}
 

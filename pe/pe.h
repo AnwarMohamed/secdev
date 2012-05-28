@@ -84,7 +84,7 @@ typedef struct {
 	DWORD SizeOfHeapCommit;
 	DWORD LoaderFlags;
 	DWORD NumberOfRvaAndSizes;
-	pe_data_directory *DataDirectories; /* length == NumberOfRvaAndSizes */
+	pe_data_directory* DataDirectories; /* length == NumberOfRvaAndSizes */
 } pe_header;
 
 BYTE  read_byte(FILE *);
