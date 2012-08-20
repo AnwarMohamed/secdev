@@ -183,6 +183,10 @@ int main(int argc, char **argv) {
 		printf("Size of Headers: 0x%08lx\n", pe->SizeOfHeaders);
 		printf("Subsystem: 0x%04hx\n", pe->Subsystem);
 		printf("Number of Rva and Sizes: 0x%08lx\n", pe->NumberOfRvaAndSizes);
+		for (j = 0; j < pe->NumberOfRvaAndSizes; ++j) {
+			printf("  VirtualAddress: 0x%08lx\n", pe->DataDirectories[j].VirtualAddress);
+			printf("  Size: 0x%08lx\n\n", pe->DataDirectories[j].Size);
+		}
 	}
 	else {
 		perror(argv[1]);
