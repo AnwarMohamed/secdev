@@ -95,6 +95,7 @@ void slurp_pe_header(pe_header *header, FILE *fh, int *bytes_read) {
 	if (header->SizeOfOptionalHeader > 0) {
 		int j;
 
+		/* Standard fields */
 		header->Magic                       = read_word(fh);  btotal += 2;
 		header->MajorLinkerVersion          = read_byte(fh);  btotal += 1;
 		header->MinorLinkerVersion          = read_byte(fh);  btotal += 1;
@@ -104,6 +105,8 @@ void slurp_pe_header(pe_header *header, FILE *fh, int *bytes_read) {
 		header->AddressOfEntryPoint         = read_dword(fh); btotal += 4;
 		header->BaseOfCode                  = read_dword(fh); btotal += 4;
 		header->BaseOfData                  = read_dword(fh); btotal += 4;
+
+		/* NT additional fields */
 		header->ImageBase                   = read_dword(fh); btotal += 4;
 		header->SectionAlignment            = read_dword(fh); btotal += 4;
 		header->FileAlignment               = read_dword(fh); btotal += 4;
@@ -141,56 +144,54 @@ int main(int argc, char **argv) {
 	FILE *fh;
 	dos_header *dos;
 	pe_header *pe;
+	int dos_header_bytes, pe_header_bytes;
+	int j;
 
 	if (argc < 2) {
 		fprintf(stderr, "Not enough arguments.\n");
 		return 1;
 	}
 
-	if ((fh = fopen(argv[1], "rb")) != NULL) {
-		int dos_header_bytes, pe_header_bytes;
-		int j;
-
-		dos = (dos_header *) malloc(sizeof(dos_header));
-		slurp_dos_header(dos, fh, &dos_header_bytes);
-
-		printf("Size of MZ header: %d\n", dos_header_bytes);
-		printf("Magic number: 0x%04hx\n", dos->e_magic);
-		printf("PE header offset: 0x%08lx\n", dos->e_lfanew);
-
-		/* jump to PE header */
-		for (j = dos_header_bytes; j < dos->e_lfanew; ++j) {
-			fgetc(fh);
-		}
-
-		pe = (pe_header *) malloc(sizeof(pe_header));
-		slurp_pe_header(pe, fh, &pe_header_bytes);
-
-		printf("\n");
-		printf("Size of PE header: %d\n", pe_header_bytes);
-		printf("Signature: 0x%08lx\n", pe->Signature);
-		printf("Machine: 0x%04hx\n", pe->Machine);
-		printf("Number of Sections: 0x%04hx\n", pe->NumberOfSections);
-		printf("Size of Optional Header: 0x%04hx\n", pe->SizeOfOptionalHeader);
-		printf("Characteristics: 0x%04hx\n", pe->Characteristics);
-		printf("Magic: 0x%04hx\n", pe->Magic);
-		printf("Address of Entry Point: 0x%08lx\n", pe->AddressOfEntryPoint);
-		printf("Image Base: 0x%08lx\n", pe->ImageBase);
-		printf("Section Alignment: 0x%08lx\n", pe->SectionAlignment);
-		printf("File Alignment: 0x%08lx\n", pe->FileAlignment);
-		printf("Major Subsystem Version: 0x%04hx\n", pe->MajorSubsystemVersion);
-		printf("Size of Image: 0x%08lx\n", pe->SizeOfImage);
-		printf("Size of Headers: 0x%08lx\n", pe->SizeOfHeaders);
-		printf("Subsystem: 0x%04hx\n", pe->Subsystem);
-		printf("Number of Rva and Sizes: 0x%08lx\n", pe->NumberOfRvaAndSizes);
-		for (j = 0; j < pe->NumberOfRvaAndSizes; ++j) {
-			printf("  VirtualAddress: 0x%08lx\n", pe->DataDirectories[j].VirtualAddress);
-			printf("  Size: 0x%08lx\n\n", pe->DataDirectories[j].Size);
-		}
-	}
-	else {
+	if ((fh = fopen(argv[1], "rb")) == NULL) {
 		perror(argv[1]);
 		return 1;
+	}
+
+	dos = (dos_header *) malloc(sizeof(dos_header));
+	slurp_dos_header(dos, fh, &dos_header_bytes);
+
+	printf("Size of MZ header: %d\n", dos_header_bytes);
+	printf("Magic number: 0x%04hx\n", dos->e_magic);
+	printf("PE header offset: 0x%08lx\n", dos->e_lfanew);
+
+	/* jump to PE header */
+	for (j = dos_header_bytes; j < dos->e_lfanew; ++j) {
+		fgetc(fh);
+	}
+
+	pe = (pe_header *) malloc(sizeof(pe_header));
+	slurp_pe_header(pe, fh, &pe_header_bytes);
+
+	printf("\n");
+	printf("Size of PE header: %d\n", pe_header_bytes);
+	printf("Signature: 0x%08lx\n", pe->Signature);
+	printf("Machine: 0x%04hx\n", pe->Machine);
+	printf("Number of Sections: 0x%04hx\n", pe->NumberOfSections);
+	printf("Size of Optional Header: 0x%04hx\n", pe->SizeOfOptionalHeader);
+	printf("Characteristics: 0x%04hx\n", pe->Characteristics);
+	printf("Magic: 0x%04hx\n", pe->Magic);
+	printf("Address of Entry Point: 0x%08lx\n", pe->AddressOfEntryPoint);
+	printf("Image Base: 0x%08lx\n", pe->ImageBase);
+	printf("Section Alignment: 0x%08lx\n", pe->SectionAlignment);
+	printf("File Alignment: 0x%08lx\n", pe->FileAlignment);
+	printf("Major Subsystem Version: 0x%04hx\n", pe->MajorSubsystemVersion);
+	printf("Size of Image: 0x%08lx\n", pe->SizeOfImage);
+	printf("Size of Headers: 0x%08lx\n", pe->SizeOfHeaders);
+	printf("Subsystem: 0x%04hx\n", pe->Subsystem);
+	printf("Number of Rva and Sizes: 0x%08lx\n", pe->NumberOfRvaAndSizes);
+	for (j = 0; j < pe->NumberOfRvaAndSizes; ++j) {
+		printf("  VirtualAddress: 0x%08lx\n", pe->DataDirectories[j].VirtualAddress);
+		printf("  Size: 0x%08lx\n\n", pe->DataDirectories[j].Size);
 	}
 
 
