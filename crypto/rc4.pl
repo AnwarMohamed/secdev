@@ -8,7 +8,7 @@
 use warnings;
 use strict;
 
-my @key = map ord, split //, shift;
+my @key = map ord, split //, (shift or die "no key");
 my @k = (@key) x (int(256 / @key) + 1);
 @k = @k[0..255];
 
