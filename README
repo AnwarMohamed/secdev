@@ -2,6 +2,7 @@ Code for various infosec stuff
 
 * pe/         Portable Executable
 * shellcode/  Shellcodes
+* crypto/     Cryptography
 
 LICENSE
 -------
