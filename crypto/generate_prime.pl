@@ -79,26 +79,26 @@ sub rabin_miller {
 
 # Sieve of Eratosthenes
 sub sieve {
-    my $n = shift;
+	my $n = shift;
 
-    my @primes;
-    my @st = (0) x $n;
-    for my $x ( 2 .. int sqrt $n ) {
-        next if $st[$x];
+	my @primes;
+	my @st = (0) x $n;
+	for my $x (2 .. int sqrt $n) {
+		next if $st[$x];
 
-        push @primes, $x;
+		push @primes, $x;
 
-        my $y = $x;
-        while ( $y <= $n ) {
-            $st[$y] = 1;
-            $y += $x;
-        }
-    }
+		my $y = $x;
+		while ($y <= $n) {
+			$st[$y] = 1;
+			$y += $x;
+		}
+	}
 
-    for my $x ( 2 .. $n ) {
-        push @primes, $x unless $st[$x];
-    }
+	for my $x (2 .. $n) {
+		push @primes, $x unless $st[$x];
+	}
 
-    @primes;
+	@primes;
 }
 
