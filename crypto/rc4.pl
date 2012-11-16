@@ -15,7 +15,7 @@ my @k = (@key) x (int(256 / @key) + 1);
 my @s = (0 .. 255);
 my $j = 0;
 for my $i (0 .. 255) {
-	$j = ($j + $s[$i] + $k[$i]) % 256;
+	$j = ($j + $s[$i] + $k[$i]) & 0xff;
 	@s[$i,$j] = @s[$j,$i];
 }
 
@@ -24,10 +24,10 @@ my $i = 0;
 while (sysread STDIN, my $bytes, 1024) {
 	my $buffer = '';
 	for my $byte (split //, $bytes) {
-		$i = ($i + 1) % 256;
-		$j = ($j + $s[$i]) % 256;
+		$i = ($i + 1) & 0xff;
+		$j = ($j + $s[$i]) & 0xff;
 		@s[$i,$j] = @s[$j,$i];
-		my $t = ($s[$i] + $s[$j]) % 256;
+		my $t = ($s[$i] + $s[$j]) & 0xff;
 		my $k = $s[$t];
 		$buffer .= $byte ^ chr($k);
 	}
