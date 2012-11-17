@@ -3,16 +3,19 @@
 # md2.pl
 #
 # usage:
-#   From stdin:
-#     cat foo | md2.pl
+#   Pipe stdin:
+#     cat foo.txt | md2.pl
+#
+#   Pass files in argv:
+#     md2.pl foo.txt
 #
 #   Run tests:
 #     md2.pl -t
 
+package MD2;
+
 use warnings;
 use strict;
-
-use Getopt::Long;
 
 # S-box
 my @s = (
@@ -54,75 +57,133 @@ my @padding = (
 	[ (0x10) x 16 ],
 );
 
-sub md2 {
-	my ($m) = @_;
-
-	my @m = map ord, split //, $m;
-
-	# Pad the message so that it's a multiple of 16 bytes long. Padding must happen,
-	# even if the message is already a multiple of 16 bytes.
-	my $pad_length = 16;
-	if (scalar(@m) % 16 != 0) {
-		my $message_length = scalar @m;
-		while ($message_length & 0x0f) {
-			$message_length += 1;
-		}
-		$pad_length = $message_length - scalar(@m);
-	}
-
-	push @m, @{ $padding[$pad_length] };
-
-	# Calculate 16-byte checksum and append to the message
-	my @c = (0) x 16;
-	my $l = 0;
-
-	for my $i (0 .. scalar(@m) / 16 - 1) {
-		for my $j (0 .. 15) {
-			my $c = $m[$i * 16 + $j];
-
-			# The RFC says:
-			#   Set C[j] to S[c xor L]
-			# What it should say:
-			#   Set C[j] to C[j] xor S[c xor L]
-			$c[$j] ^= $s[$c ^ $l];
-			$l = $c[$j];
-		}
-	}
-
-	push @m, @c;
-
-	# Calculate the message digest
-	my @x = (0) x 48;
-
-	for my $i (0 .. scalar(@m) / 16 - 1) {
-		for my $j (0 .. 15) {
-			$x[16 + $j] = $m[$i * 16 + $j];
-			$x[32 + $j] = $x[16 + $j] ^ $x[$j];
-		}
-
-		my $t = 0;
-
-		for my $j (0 .. 17) {
-			for my $k (0 .. 47) {
-				$t = $x[$k] ^= $s[$t];
-			}
-
-			$t = ($t + $j) & 0xff;
-		}
-	}
-
-	# The digest is the first 128 bits (16 bytes) only
-	@x[0 .. 15];
+sub new {
+	bless {
+		buffer   => [],
+		checksum => [ (0) x 16 ],
+		digest   => [ (0) x 16 ],
+	} => $_[0]
 }
 
-sub md2_bytes { join '', map chr, md2 shift }
-sub md2_hex   { scalar unpack 'H32', md2_bytes shift }
+sub update {
+	my ($self, $block) = @_;
 
-GetOptions(
-	't|test!' => \my $test_mode,
-);
+	if ($block) {
+		my @m = map ord, split //, $block;
+		push @{ $self->{buffer} }, @m;
+	}
 
-if ($test_mode) {
+	if (scalar @{ $self->{buffer} } < 16) {
+		# Not enough bytes in the buffer to do work
+		return;
+	}
+
+	# Process all 16-byte blocks in the buffer
+	while (scalar @{ $self->{buffer} } >= 16) {
+		my @m = splice @{ $self->{buffer} }, 0, 16;
+		$self->transform(@m);
+	}
+}
+
+sub transform {
+	my ($self, @bytes) = @_;
+
+	# Update the digest
+	my @x = @{ $self->{digest} };
+	push @x, @bytes;
+	push @x, (0) x 16;
+
+	for my $j (0 .. 15) {
+		$x[32 + $j] = $bytes[$j] ^ $x[$j];
+	}
+
+	my $t = 0;
+
+	for my $j (0 .. 17) {
+		for my $k (0 .. 47) {
+			$t = $x[$k] ^= $s[$t];
+		}
+
+		$t = ($t + $j) & 0xff;
+	}
+
+	$self->{digest} = [ @x[0 .. 15] ];
+
+	# Update the checksum
+	my @c = @{ $self->{checksum} };
+	my $l = $c[15];
+
+	for my $j (0 .. 15) {
+		# The RFC says:
+		#   Set C[j] to S[c xor L]
+		# What it should say:
+		#   Set C[j] to C[j] xor S[c xor L]
+		$l = $c[$j] ^= $s[$bytes[$j] ^ $l];
+	}
+
+	$self->{checksum} = \@c;
+}
+
+sub final {
+	my ($self) = @_;
+
+	# Pad the message so that it's a multiple of 16 bytes long. Padding must
+	# happen, even if the message is already a multiple of 16 bytes.
+	my $pad_length = 16 - scalar(@{ $self->{buffer} }) % 16;
+	$self->update( join '', map chr, @{ $padding[$pad_length] } );
+
+	# Append the checksum
+	$self->update( join '', map chr, @{ $self->{checksum} });
+}
+
+sub digest_bytes { join '', map chr, @{ shift->{digest} }[0 .. 15] }
+sub digest_hex   { scalar unpack 'H32', shift->digest_bytes }
+
+package main;
+
+use warnings;
+use strict;
+
+use Getopt::Long;
+
+sub md2_string {
+	my ($s) = @_;
+	my $md2 = MD2->new;
+	$md2->update($s);
+	$md2->final;
+	$md2->digest_hex;
+}
+
+sub md2_fh {
+	my ($fh) = @_;
+	my $md2 = MD2->new;
+	while (1) {
+		my $bytes_read = sysread $fh, my $bytes, 1024;
+
+		if ($bytes_read < 1024) {
+			$md2->update($bytes);
+			$md2->final;
+			last;
+		}
+		else {
+			$md2->update($bytes);
+		}
+	}
+	$md2->digest_hex;
+}
+
+sub md2_file {
+	my ($file) = @_;
+	print "$file\n";
+	open my $fh, '<', $file or die $!;
+	my $digest = md2_fh($fh);
+	close $fh;
+	$digest
+}
+
+GetOptions('t|test!' => \my $test);
+
+if ($test) {
 	eval { use Test::More };
 
 	my %tests = (
@@ -140,14 +201,15 @@ if ($test_mode) {
 	plan tests => scalar keys %tests;
 
 	while (my ($test, $desired_result) = each %tests) {
-		my $md2 = md2_hex($test);
+		my $md2 = md2_string($test);
 		diag("MD2('$test') = $md2");
 		is($md2, $desired_result);
 	}
 }
+elsif (@ARGV) {
+	print md2_file($ARGV[0]), "\n";
+}
 else {
-	# Yeah, yeah, yeah. Should be buffered input, etc...
-	local $/;
-	print md2_hex(<STDIN>), "\n";
+	print md2_fh(\*STDIN), "\n";
 }
 
