@@ -174,7 +174,6 @@ sub md2_fh {
 
 sub md2_file {
 	my ($file) = @_;
-	print "$file\n";
 	open my $fh, '<', $file or die $!;
 	my $digest = md2_fh($fh);
 	close $fh;
