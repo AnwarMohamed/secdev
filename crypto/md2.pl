@@ -157,18 +157,10 @@ sub md2_string {
 sub md2_fh {
 	my ($fh) = @_;
 	my $md2 = MD2->new;
-	while (1) {
-		my $bytes_read = sysread $fh, my $bytes, 1024;
-
-		if ($bytes_read < 1024) {
-			$md2->update($bytes);
-			$md2->final;
-			last;
-		}
-		else {
-			$md2->update($bytes);
-		}
+	while (my $bytes_read = sysread $fh, my $bytes, 1024) {
+		$md2->update($bytes);
 	}
+	$md2->final;
 	$md2->digest_hex;
 }
 
