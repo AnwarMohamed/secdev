@@ -1,8 +1,5 @@
 #!/usr/bin/env perl
-
-# coltr.pl
-# Tool for analysing columnar transposition ciphertext.
-#
+# coltr.pl -- tool for analysing columnar transposition ciphertext
 # usage:
 #   $ echo -n 'abcdefghi' | coltr.pl -c 3 -o 3,1,2
 #   gad
@@ -15,24 +12,21 @@ use strict;
 use Getopt::Long;
 
 my $columns = 1;
-my $output;
+my $key;
 
 GetOptions(
 	'c|columns=s' => \$columns,
-	'o|output=s'  => \$output
+	'k|keys'      => \$key,
 );
 
-my $ciphertext = do {
-	local $/;
-	<STDIN>
-};
-$ciphertext =~ s{[^a-zA-Z]}{}g;
+my $ciphertext = do { local $/; <STDIN> };
+$ciphertext =~ s/[^a-zA-Z]//g;
 
 my $y_max = (length($ciphertext) / $columns) - 1;
 
 my @order = 0 .. $columns - 1;
-if ($output) {
-	@order = map { int($_) - 1 } split /,/, $output;
+if ($key) {
+	@order = map { int($_) - 1 } split /,/, $key;
 }
 
 my @grid;
