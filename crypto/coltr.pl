@@ -1,7 +1,7 @@
 #!/usr/bin/env perl
 # coltr.pl -- tool for analysing columnar transposition ciphertext
 # usage:
-#   $ echo -n 'abcdefghi' | coltr.pl -c 3 -o 3,1,2
+#   $ echo -n 'abcdefghi' | coltr.pl -c 3 -k 3,1,2
 #   gad
 #   hbe
 #   icf
@@ -16,7 +16,7 @@ my $key;
 
 GetOptions(
 	'c|columns=s' => \$columns,
-	'k|keys'      => \$key,
+	'k|key=s'     => \$key,
 );
 
 my $ciphertext = do { local $/; <STDIN> };
