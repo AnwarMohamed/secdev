@@ -68,7 +68,7 @@ sub rabin_miller {
 		return 1;
 	}
 
-	if (($j == $b) and ($z == $p - 1)) {
+	if (($j == $b) and ($z != $p - 1)) {
 		# not prime
 		return 0;
 	}
