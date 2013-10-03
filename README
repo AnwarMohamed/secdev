@@ -1,8 +1,8 @@
 Code for various infosec stuff
 
+* crypto/     Cryptography and Encoding
 * pe/         Portable Executable
 * shellcode/  Shellcodes
-* crypto/     Cryptography
 
 LICENSE
 -------
