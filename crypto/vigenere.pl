@@ -48,7 +48,7 @@ my $rev_lookup = [
 ];
 
 my $key = shift || die "no key";
-my $data = @ARGV ? shift : slurp(<STDIN>);
+my $data = @ARGV ? shift : slurp(\*STDIN);
 
 $key =~ s/[^a-zA-Z]//g;
 
