@@ -43,12 +43,6 @@ my $lookup = [
 	} 'A' .. 'Z'
 ];
 
-my $rev_lookup = [
-	map {
-		[ ror(ord($_) - 65, 'A' .. 'Z') ]
-	} 'A' .. 'Z'
-];
-
 sub encrypt {
 	my ($k, $d) = @_;
 	$lookup->[ord($k) - 65]->[ord($d) - 65];
@@ -56,7 +50,7 @@ sub encrypt {
 
 sub decrypt {
 	my ($k, $d) = @_;
-	$rev_lookup->[ord($k) - 65]->[ord($d) - 65]
+	$lookup->[26 - (ord($k) - 65)]->[ord($d) - 65]
 }
 
 my $key = shift || die "no key";
