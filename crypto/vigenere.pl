@@ -29,23 +29,35 @@ GetOptions(
 $encrypt = 1 unless $decrypt;
 
 sub rotate {
-	my ($n, $d, @data) = @_;
+	my ($d, $n, @data) = @_;
 	my @a = splice @data, 0, $d == LEFT ? $n : (0 - $n);
 	push @data, @a;
 	@data
 }
+sub rol { rotate(LEFT, @_) }
+sub ror { rotate(RIGHT, @_) }
 
 my $lookup = [
 	map {
-		[ rotate(ord($_) - 65, LEFT, 'A' .. 'Z') ]
+		[ rol(ord($_) - 65, 'A' .. 'Z') ]
 	} 'A' .. 'Z'
 ];
 
 my $rev_lookup = [
 	map {
-		[ rotate(ord($_) - 65, RIGHT, 'A' .. 'Z') ]
+		[ ror(ord($_) - 65, 'A' .. 'Z') ]
 	} 'A' .. 'Z'
 ];
+
+sub encrypt {
+	my ($k, $d) = @_;
+	$lookup->[ord($k) - 65]->[ord($d) - 65];
+}
+
+sub decrypt {
+	my ($k, $d) = @_;
+	$rev_lookup->[ord($k) - 65]->[ord($d) - 65]
+}
 
 my $key = shift || die "no key";
 my $data = @ARGV ? shift : slurp(\*STDIN);
@@ -64,10 +76,10 @@ for my $x (0 .. length($data) - 1) {
 	my $k = uc substr $key, $ki++ % length($key), 1;
 
 	if ($encrypt) {
-		print $lookup->[ord($k) - 65]->[ord($d) - 65];
+		print encrypt($k,$d);
 	}
 	elsif ($decrypt) {
-		print $rev_lookup->[ord($k) - 65]->[ord($d) - 65];
+		print decrypt($k,$d);
 	}
 }
 print "\n";
