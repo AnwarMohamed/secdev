@@ -50,7 +50,7 @@ sub encrypt {
 
 sub decrypt {
 	my ($k, $d) = @_;
-	$lookup->[26 - (ord($k) - 65)]->[ord($d) - 65]
+	$lookup->[(26 - (ord($k) - 65)) % 26]->[ord($d) - 65]
 }
 
 my $key = shift || die "no key";
