@@ -6,49 +6,32 @@
 use warnings;
 use strict;
 
+use List::Util qw/sum/;
+
 my $d = @ARGV ? shift : do { local $/; <STDIN> };
 
 $d = uc $d;
 $d =~ s/[^A-Z]//g;
 
-my %mg;
-for my $c (monograms($d)) {
-	$mg{$c} ||= 0;
-	$mg{$c} += 1;
-}
-print "Monograms:\n";
-for my $c (sort { $mg{$b} <=> $mg{$a} } keys %mg) {
-	printf "%s -> %d\n", $c, $mg{$c};
-}
+my @grams = (
+	[ Monograms => \&monograms ],
+	[ Bigrams   => \&bigrams   ],
+	[ Trigrams  => \&trigrams  ],
+	[ Quadgrams => \&quadgrams ],
+);
 
-my %bg;
-for my $c (bigrams($d)) {
-	$bg{$c} ||= 0;
-	$bg{$c} += 1;
-}
-print "Bigrams:\n";
-for my $c (sort { $bg{$b} <=> $bg{$a} } keys %bg) {
-	printf "%s -> %d\n", $c, $bg{$c};
-}
-
-my %tg;
-for my $c (trigrams($d)) {
-	$tg{$c} ||= 0;
-	$tg{$c} += 1;
-}
-print "Trigrams:\n";
-for my $c (sort { $tg{$b} <=> $tg{$a} } keys %tg) {
-	printf "%s -> %d\n", $c, $tg{$c};
-}
-
-my %qg;
-for my $c (quadgrams($d)) {
-	$qg{$c} ||= 0;
-	$qg{$c} += 1;
-}
-print "Quadgrams:\n";
-for my $c (sort { $qg{$b} <=> $qg{$a} } keys %qg) {
-	printf "%s -> %d\n", $c, $qg{$c};
+for my $gram (@grams) {
+	my ($mbtq, $f) = @$gram;
+	my %g;
+	for my $c ($f->($d)) {
+		$g{$c} ||= 0;
+		$g{$c} += 1;
+	}
+	my $t = sum(values %g);
+	print "$mbtq:\n";
+	for my $c (sort { $g{$b} <=> $g{$a} } keys %g) {
+		printf "%s -> %d [%.2f%%]\n", $c, $g{$c}, ($g{$c} / $t) * 100;
+	}
 }
 
 sub monograms { split //, pop }
