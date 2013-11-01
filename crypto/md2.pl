@@ -69,7 +69,7 @@ sub update {
 	my ($self, $block) = @_;
 
 	if ($block) {
-		my @m = map ord, split //, $block;
+		my @m = unpack 'C*', $block;
 		push @{ $self->{buffer} }, @m;
 	}
 
@@ -130,14 +130,14 @@ sub final {
 	# Pad the message so that it's a multiple of 16 bytes long. Padding must
 	# happen, even if the message is already a multiple of 16 bytes.
 	my $pad_length = 16 - scalar(@{ $self->{buffer} }) % 16;
-	$self->update( join '', map chr, @{ $padding[$pad_length] } );
+	$self->update(pack 'C*', @{ $padding[$pad_length] });
 
 	# Append the checksum
-	$self->update( join '', map chr, @{ $self->{checksum} });
+	$self->update(pack 'C*', @{ $self->{checksum} });
 }
 
-sub digest_bytes { join '', map chr, @{ shift->{digest} }[0 .. 15] }
-sub digest_hex   { scalar unpack 'H32', shift->digest_bytes }
+sub digest_bytes { pack 'C*', @{ shift->{digest} }[0 .. 15] }
+sub digest_hex   { unpack 'H32', shift->digest_bytes }
 
 package main;
 
@@ -157,7 +157,7 @@ sub md2_string {
 sub md2_fh {
 	my ($fh) = @_;
 	my $md2 = MD2->new;
-	while (my $bytes_read = sysread $fh, my $bytes, 1024) {
+	while (my $bytes_read = sysread $fh, my $bytes, 4096) {
 		$md2->update($bytes);
 	}
 	$md2->final;
