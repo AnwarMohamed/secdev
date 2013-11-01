@@ -24,8 +24,8 @@
 #   Using key: FOOBAR
 #   Decrypted text: THISISSOMETEXTITISSOMEPRETTYCOMMONTEXTIWONDERIFICANCRACKITWITHMYQUADGRAMCRACKER
 #
-# Currently only cracks Vigenere and Caesar ciphers, but the code to plug more
-# algorithms in is there.
+# Currently cracks Vigenere, Caesar and simple XOR ciphers, although simple XOR
+# doesn't work so great if there's a lot of non A-Z in the plaintext.
 #
 # It started as a dive into cryptanalysis of simple, classical ciphers, and then
 # I went a bit overboard... but hey, at least it's useful in ARGs and simple
@@ -336,11 +336,8 @@ $times ||= 1;
 
 my $data = @ARGV ? shift : slurp(\*STDIN);
 
-#print Algorithm::XOR->new->decrypt("ICE",pack("H*","0b3637272a2b2e63622c2e69692a23693a2a3c6324202d623d63343c2a26226324272765272a282b2f20430a652e2c652a3124333a653e2b2027630c692b20283165286326302e27282f")),"\n";
-#exit;
-
 App::QuadGramCrack->new(
-	quadgrams  => 'english_quadgrams.txt',
+	quadgrams  => 'english_quadgrams.txt',  # get this from practicalcryptography.com
 	debug      => $debug,
 )->run({
 	times      => $times,
