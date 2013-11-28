@@ -4,18 +4,14 @@
 use warnings;
 use strict;
 
-sub word { (pop() <<  8) | pop() }
-sub unpack_w { map { $_[0] >> $_ & 0xff } 0, 8 }
 sub read_w {
 	sysread pop, my $buf, 2;
-	word(unpack "C*", $buf);
+	unpack "v", $buf;
 }
 
-sub dword { (pop() << 24) | (pop() << 16) | (pop() << 8) | pop() }
-sub unpack_dw { map { $_[0] >> $_ & 0xff } 0, 8, 16, 24 }
 sub read_dw {
 	sysread pop, my $buf, 4;
-	dword(unpack "C*", $buf);
+	unpack "V", $buf;
 }
 
 open my $fin, '<', $ARGV[0] or die $!;
@@ -29,7 +25,7 @@ use constant BMP_HEADER_SIZE => 14;
 printf "BMP header size: 0x%02x (%db)\n", BMP_HEADER_SIZE, BMP_HEADER_SIZE;
 
 my $magic = read_w($fin);
-printf "magic: 0x%02x (%c%c)\n", $magic, unpack_w($magic);
+printf "magic: 0x%02x (%s)\n", $magic, pack("v", $magic);
 
 my $bmp_file_sz = read_dw($fin);
 printf "file size: 0x%04x (%db)\n", $bmp_file_sz, $bmp_file_sz;
@@ -75,7 +71,7 @@ print "\n";
 
 my %unpack_px_f = (
 	1  => sub {},  # handling these two will required
-	4  => sub {},  # some code change down there.
+	4  => sub {},  # some code changes down there.
 	8  => sub {},
 	16 => sub {},
 	24 => sub { @_[2,1,0], undef },  # b, g, r
