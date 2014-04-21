@@ -1,0 +1,28 @@
+Heartbleed
+
+CVE-2014-0160
+
+Generate certs n stuff
+----------------------
+
+$ openssl req -x509 -nodes -days 365 -newkey rsa:2048 -keyout server.key -out server.crt
+
+server.pl
+---------
+
+o HTTPS server. Serves some static text only.
+o Uses system OpenSSL.
+o Listens on 443 by default.
+o Uses server.key and server.crt from the same directory.
+
+$ wget --no-check-certificate -q -O - https://localhost/
+Hack the planet!
+$ curl -k https://localhost/
+Hack the planet!
+
+bleed.pl
+--------
+
+o Connects to localhost:443 by default. Overridden by ARGV.
+o Keeps sending heartbeats.
+o Hex dumps to stdout.

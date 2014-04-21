@@ -77,7 +77,7 @@ my $hb =
 	"\x03\x02" .  # TLS version
 	"\x00\x03" .  # Remaining packet length
 	"\x01" .      # Heartbeat request
-	"\xff\xff";   # Heartbeat length
+	"\xff\xed";   # Heartbeat length
 
 sub unpack_block {
 	my ($block) = @_;
@@ -159,14 +159,11 @@ POE::Component::Client::TCP->new(
 				print HexDump($pay);
 			}
 
-			# TODO sometimes we don't get exactly 0xffff bytes back. guess
-			# there's some extra fluff that I haven't researched about enough
-			# yet, so just keep sending heartbeats, even when we haven't read
-			# the entire response from the previous request yet.
-			#if (($heap->{bytes_rcvd} & 0xffff) == 0) {
-			#	print "Sending heartbeat...\n";
+			# We don't get all 64kb back in one response packet, so count until we do
+			if (($heap->{bytes_rcvd} & 0xffff) == 0) {
+				print "Sending heartbeat...\n";
 				$heap->{server}->put($hb);
-			#}
+			}
 		}
 	},
 );
